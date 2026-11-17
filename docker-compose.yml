@@ -1,0 +1,39 @@
+services:
+  model-registry:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: model-registry
+    environment:
+      MODEL_REGISTRY_ENVIRONMENT: development
+      MODEL_REGISTRY_LOG_LEVEL: INFO
+      MODEL_REGISTRY_LOG_FORMAT: json
+      MODEL_REGISTRY_DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/model_registry
+      MODEL_REGISTRY_PORT: "8155"
+    ports:
+      - "8155:8155"
+    depends_on:
+      - db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8155/health/ready', timeout=5).read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  db:
+    image: postgres:18-alpine
+    container_name: model-registry-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: model_registry
+    ports:
+      - "5454:5432"
+    volumes:
+      - model_registry_db_data:/var/lib/postgresql/data
+
+volumes:
+  model_registry_db_data:
